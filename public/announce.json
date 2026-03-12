@@ -1,1 +1,7 @@
-{ "active": true, "message": "DIBERITAHUKAN KEPADA SELURUH PENGGUNA SAYA HARAP ANDA MELAKUKAN REFRESH PADA WEBSITE UNTUK MENDAPATKAN FITUR TERBARU UNTUK SAAT INI!", "type": "info", "link": "https://auto-generator-app.vercel.app", "linkText": "AutoGen" }
+{
+  "active": false,
+  "message": "",
+  "type": "",
+  "link": "",
+  "linkText": ""
+}
