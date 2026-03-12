@@ -23,6 +23,8 @@ import NotFound from "./components/NotFound";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminGuard from "./pages/admin/AdminGuard";
 import AdminLogin from "./pages/admin/AdminLogin";
+import LockdownCheck from "./components/LockdownCheck";
+import AnnounceBar from "./components/AnnounceBar";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -389,7 +391,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <SecurityGuard>
-        <AppContent />
+        <LockdownCheck>
+          <AnnounceBar />
+          <AppContent />
+        </LockdownCheck>
       </SecurityGuard>
     </BrowserRouter>
   );
