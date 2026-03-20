@@ -24,7 +24,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminGuard from "./pages/admin/AdminGuard";
 import AdminLogin from "./pages/admin/AdminLogin";
 import LockdownCheck from "./components/LockdownCheck";
-import AnnounceBar from "./components/AnnounceBar";
+import AnnounceModal from "./components/AnnounceModal";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -135,7 +135,7 @@ function RealtimeSync() {
           }
         }
       } catch (err) {
-        // Silent fail
+        console.error("Error checking for updates:", err);
       }
     };
 
@@ -391,10 +391,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <SecurityGuard>
-        <LockdownCheck>
-          <AnnounceBar />
+        <LockdownCheck currentPath={location.pathname}>
           <AppContent />
         </LockdownCheck>
+        <AnnounceModal />
       </SecurityGuard>
     </BrowserRouter>
   );

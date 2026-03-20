@@ -1,113 +1,129 @@
-// src/components/LockdownCheck.jsx
+// LockdownCheck.jsx — AutoGenerator-App
 // ─────────────────────────────────────────────────────────────────────────────
-// Taruh komponen ini di src/App.jsx atau src/main.jsx (wrap seluruh app)
-// Komponen ini akan fetch /lockdown.json dan menampilkan layar lockdown
-// jika active: true
+// CARA PAKAI:
+//   Wrap seluruh App.jsx dengan <LockdownCheck>
+//   import LockdownCheck from './components/LockdownCheck';
+//
+// CARA KERJA:
+//   - Fetch /lockdown.json setiap mount
+//   - Jika active=true dan routes=[]:   FULL lockdown → semua halaman kena
+//   - Jika active=true dan routes=["/cv", "/surat-lamaran"]:
+//       ROUTE lockdown → hanya path yang cocok kena, yang lain bebas
+//   - Navbar TIDAK pernah kena lockdown (hanya konten halaman)
+//
+// CONTOH INTEGRASI ROUTE LOCKDOWN DI APP.JSX:
+//   <LockdownCheck currentPath={location.pathname}>
+//     <Routes>...</Routes>
+//   </LockdownCheck>
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
 
-export default function LockdownCheck({ children }) {
-  const [status, setStatus]   = useState('loading'); // 'loading' | 'locked' | 'ok'
-  const [data,   setData]     = useState(null);
+function matchRoute(lockdownRoutes, currentPath) {
+  if (!lockdownRoutes || lockdownRoutes.length === 0) return true; // full lockdown
+  return lockdownRoutes.some(r => {
+    const clean = r.replace(/\/$/, '');
+    const path  = (currentPath || '/').replace(/\/$/, '') || '/';
+    return path === clean || path.startsWith(clean + '/');
+  });
+}
+
+export default function LockdownCheck({ children, currentPath }) {
+  const [state, setState] = useState({ checked: false, active: false, data: null });
 
   useEffect(() => {
-    const check = async () => {
-      try {
-        const res  = await fetch('/lockdown.json?_=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) { setStatus('ok'); return; }
-        const json = await res.json();
-        if (json?.active === true) {
-          setData(json);
-          setStatus('locked');
-        } else {
-          setStatus('ok');
-        }
-      } catch {
-        // Jika file tidak ada, lanjut normal
-        setStatus('ok');
-      }
-    };
-
-    check();
-    // Re-check setiap 60 detik
-    const interval = setInterval(check, 60_000);
-    return () => clearInterval(interval);
+    fetch('/lockdown.json?_=' + Date.now(), { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setState({ checked: true, active: !!d?.active, data: d }))
+      .catch(() => setState({ checked: true, active: false, data: null }));
   }, []);
 
-  if (status === 'loading') {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', background: '#0a0a1a', color: '#8b7cf8',
-        fontFamily: 'sans-serif',
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 40, height: 40, border: '3px solid #8b7cf8', borderTopColor: 'transparent',
-            borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-          <p style={{ color: '#64748b', fontSize: 14 }}>Loading…</p>
-        </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  // Not yet checked — render children normally (avoids flash)
+  if (!state.checked) return children;
 
-  if (status === 'locked') {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', background: '#04040d', color: '#e2e8f0',
-        fontFamily: "'Segoe UI', system-ui, sans-serif", padding: '24px',
-      }}>
-        <div style={{ textAlign: 'center', maxWidth: 480 }}>
-          {/* Lock icon */}
-          <div style={{
-            width: 80, height: 80, borderRadius: '50%', margin: '0 auto 24px',
-            background: 'linear-gradient(135deg,rgba(220,38,38,.2),rgba(147,51,234,.15))',
-            border: '1px solid rgba(220,38,38,.3)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', fontSize: 32,
-          }}>
-            🔒
-          </div>
+  // Not locked — render normally
+  if (!state.active) return children;
 
-          {/* Media image */}
-          {data?.mediaUrl && (
-            <img src={data.mediaUrl} alt="maintenance"
-              style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 12, marginBottom: 24, border: '1px solid rgba(255,255,255,.1)' }}
-            />
-          )}
+  // Locked — check if this route is affected
+  const path = currentPath || (typeof window !== 'undefined' ? window.location.pathname : '/');
+  const affected = matchRoute(state.data?.routes, path);
 
-          <h1 style={{
-            fontSize: 28, fontWeight: 700, marginBottom: 12,
-            background: 'linear-gradient(135deg,#f87171,#a78bfa)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>
-            Under Maintenance
-          </h1>
+  if (!affected) return children; // This route is NOT locked
 
-          {data?.reason && (
-            <p style={{ color: '#94a3b8', fontSize: 16, lineHeight: 1.6, marginBottom: 8 }}>
-              {data.reason}
-            </p>
-          )}
-
-          <p style={{ color: '#475569', fontSize: 13, marginTop: 16 }}>
-            {data?.timestamp ? (
-              <>Since {new Date(data.timestamp).toLocaleString('id-ID')}</>
-            ) : null}
-          </p>
-
-          <div style={{ marginTop: 32, padding: '12px 24px', borderRadius: 12,
-            background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)',
-            display: 'inline-block' }}>
-            <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>
-              Halaman ini sedang dalam pemeliharaan. Silakan coba lagi nanti.
-            </p>
-          </div>
+  // Show lockdown screen
+  const d = state.data;
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 99990,
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: 'linear-gradient(135deg, #0a0a14 0%, #0d0d1f 50%, #0a0a14 100%)',
+      fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
+      padding: 24, textAlign: 'center',
+      minHeight: '100vh',
+    }}>
+      {/* Animated rings */}
+      <div style={{ position: 'relative', width: 120, height: 120, marginBottom: 32 }}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{
+            position: 'absolute', inset: i * 16,
+            borderRadius: '50%',
+            border: '1px solid rgba(124,58,237,' + (0.4 - i * 0.1) + ')',
+            animation: `lockPulse ${2 + i * 0.5}s ease-in-out infinite`,
+          }} />
+        ))}
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          background: 'rgba(124,58,237,.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px solid rgba(124,58,237,.4)',
+        }}>
+          <span style={{ fontSize: 36 }}>🔒</span>
         </div>
       </div>
-    );
-  }
 
-  return children;
+      {/* Media */}
+      {d?.mediaUrl && (
+        <div style={{ marginBottom: 24, borderRadius: 16, overflow: 'hidden',
+          maxWidth: 480, width: '100%', border: '1px solid rgba(124,58,237,.2)' }}>
+          {/\.(mp4|webm|mov)/i.test(d.mediaUrl)
+            ? <video src={d.mediaUrl} autoPlay muted loop style={{ width: '100%', maxHeight: 260, objectFit: 'cover' }} />
+            : <img src={d.mediaUrl} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover' }} />}
+        </div>
+      )}
+
+      <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 800,
+        color: '#fff', letterSpacing: '-0.02em' }}>
+        {d?.routes?.length > 0 ? 'Fitur Dalam Perbaikan' : 'Sedang Maintenance'}
+      </h1>
+
+      {d?.routes?.length > 0 && (
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'rgba(255,255,255,.4)' }}>
+          Halaman lain masih dapat diakses
+        </p>
+      )}
+
+      {d?.reason && (
+        <p style={{
+          margin: '0 0 24px', fontSize: 15, lineHeight: 1.65,
+          color: 'rgba(255,255,255,.7)', maxWidth: 440,
+        }}>
+          {d.reason}
+        </p>
+      )}
+
+      {d?.timestamp && (
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>
+          Sejak {new Date(d.timestamp).toLocaleString('id-ID')}
+        </p>
+      )}
+
+      <style>{`
+        @keyframes lockPulse {
+          0%,100% { opacity: .5; transform: scale(1); }
+          50%      { opacity: 1;  transform: scale(1.04); }
+        }
+      `}</style>
+    </div>
+  );
 }
