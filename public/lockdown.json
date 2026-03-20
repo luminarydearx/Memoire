@@ -1,1 +1,9 @@
-{"active":true,"reason":"TEST","timestamp":"","mediaUrl":"","routes":["/gallery"]}
+{
+  "active": true,
+  "reason": "test",
+  "timestamp": "2026-03-20T08:18:14.123Z",
+  "mediaUrl": "https://res.cloudinary.com/dg3awuzug/image/upload/v1773994692/vfia0s88d1wzzlm7yrfz.jpg",
+  "routes": [
+    "/about"
+  ]
+}
