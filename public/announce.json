@@ -1,9 +1,9 @@
 {
-  "active": true,
+  "active": false,
   "message": "p",
   "type": "info",
   "link": "/",
   "linkText": "continue",
-  "id": "931c3a81-0304-46f3-866a-2c67622e89e5",
-  "updatedAt": "2026-03-20T08:17:11.157Z"
+  "id": "",
+  "updatedAt": "2026-03-20T08:17:45.996Z"
 }
